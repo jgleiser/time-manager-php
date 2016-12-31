@@ -375,5 +375,72 @@ class User {
             );
         }
     }
+    
+    // delete user, password check is required
+    public function delete($usrPwd) {
+        if (!isset($usrPwd)) {
+            return array(
+                'error' => ['msg' => "Password needed to delete user " . $this->username]
+            );
+        }
+        
+        $checkPwd = $this->checkPassword($usrPwd);
+        if (!$checkPwd) {
+            return array(
+                'error' => ['msg' => "Given password is incorrect, can't delete user " . $this->username]
+            );
+        }
+        
+        $query = "DELETE FROM USERS WHERE ROW_ID = :row_id";
+        $query_data = array(
+            "row_id" => $this->id
+        );
+        
+        try {
+            $conn = new PDO("mysql:host=".HOST.";dbname=".DATABASE, DBUSER, DBPASSWORD);
+            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch(PDOException $e) {
+            return array(
+                'error' => ['msg' => "Connection failed: " . $e->getMessage()]
+            );
+        }
+        
+        try {
+            $stmt = $conn->prepare($query);
+            if ($stmt) {
+                $result = $stmt->execute($query_data);
+            }
+        } catch(PDOException $e) {
+            return array(
+                'error' => ['msg' => "PDO Error: " . $e->getMessage()]
+            );
+        }
+        
+        if ($result) {
+            $rowCount = $stmt->rowCount();
+            if (1 === $rowCount) {
+                $this->id = null;
+                $this->username = null;
+                $this->workHoursStart = null;
+                $this->workHoursEnd = null;
+                $this->apiKey = null;
+                $this->apiKeyExpiration = null;
+                return true;
+            } else if (0 === $rowCount) {
+                return array(
+                    'error' => ['msg' => "User " . $this->username . " was not deleted"]
+                );
+            } else {
+                return array(
+                    'error' => ['msg' => "Unexpected error, more than 1 user deleted"]
+                );
+            }
+        } else {
+            $error = $stmt->errorInfo();
+            return array(
+                'error' => ['msg' => "Query failed with message: " . $error[2]]
+            );
+        }
+    }
 }
 
