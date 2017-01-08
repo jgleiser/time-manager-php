@@ -1,6 +1,9 @@
 <?php
+namespace TM;
 
-class Admin extends Manager {
+include_once '../src/classes/TM/Manager.php';
+
+class Admin extends \TM\Manager {
     public function isAdmin() {
         return true;
     }
