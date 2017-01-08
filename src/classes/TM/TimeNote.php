@@ -1,4 +1,7 @@
 <?php
+namespace TM;
+
+use \PDO;
 
 class TimeNote {
     private $id;
