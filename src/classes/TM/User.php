@@ -221,17 +221,26 @@ class User {
         
         if (empty($user)) {
             return array(
-                'error' => ['msg' => "User not found"]
+                'error' => [
+                    'msg' => "User not found",
+                    'code' => 404
+                ]
             );
         }
         else if ($apiKey !== $user['API_KEY']) {
             return array(
-                'error' => ['msg' => "Api key is incorrect"]
+                'error' => [
+                    'msg' => "Api key is incorrect",
+                    'code' => 403
+                ]
             );
         }
         else if (new DateTime($user['API_KEY_EXPIRATION']) < new DateTime()) {
             return array(
-                'error' => ['msg' => "Api key is expired, please login again"]
+                'error' => [
+                    'msg' => "Api key is expired, please login again",
+                    'code' => 403
+                ]
             );
         }
         
@@ -240,9 +249,7 @@ class User {
             'username' => $user['USERNAME'],
             'role' => $user['ROLE'],
             'workHoursStart' => $user['WORK_START_TIME'],
-            'workHoursEnd' => $user['WORK_END_TIME'],
-            'apiKey' => $user['API_KEY'],
-            'apiKeyExpiration' => $user['API_KEY_EXPIRATION']
+            'workHoursEnd' => $user['WORK_END_TIME']
         );
     }
     
@@ -289,7 +296,10 @@ class User {
         // check if user exists
         if (self::usernameExists($username)) {
             return array(
-                'error' => ['msg' => "Username $username already exists"]
+                'error' => [
+                    'msg' => "Username $username already exists",
+                    'code' => 200
+                ]
             );
         }
         
