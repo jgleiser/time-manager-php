@@ -1,4 +1,10 @@
 <?php
+namespace TM;
+
+use \PDO;
+use \DateTime;
+use \DateTimeZone;
+use \DateInterval;
 
 class User {
     protected $id;
@@ -73,7 +79,7 @@ class User {
         return $this->apiKeyExpiration;
     }
     
-    // Static function to login a user
+    // Static function to login a user with username and password
     public static function login($username, $password) {
         // check if user exists and password is ok
         $query = "SELECT ROW_ID, USERNAME, PASSWORD, ROLE, API_KEY, API_KEY_EXPIRATION, WORK_START_TIME, WORK_END_TIME ";
@@ -114,19 +120,25 @@ class User {
         
         if (empty($user)) {
             return array(
-                'error' => ['msg' => "User not found"]
+                'error' => [
+                    'msg' => "User not found",
+                    'code' => 404
+                ]
             );
         }
         else if (!password_verify($password, $user['PASSWORD'])) {
             return array(
-                'error' => ['msg' => "Password is incorrect for user $username"]
+                'error' => [
+                    'msg' => "Password is incorrect for user $username",
+                    'code' => 403
+                ]
             );
         }
         
         // create api key and update when expires
-        $api_key = TMApi::genApiKey($user['ROW_ID']);
+        $api_key = Api::genApiKey($user['ROW_ID']);
         $api_key_expiration = new DateTime();
-        $api_key_expiration->setTimezone(new DateTimeZone('America/Santiago'));
+        //$api_key_expiration->setTimezone(new DateTimeZone('America/Santiago'));
         $api_key_expiration->add(new DateInterval('P1D'));
         $expDate = $api_key_expiration->format('Y-m-d H:i:s');
         
@@ -166,6 +178,71 @@ class User {
             'workHoursEnd' => $user['WORK_END_TIME'],
             'apiKey' => $api_key,
             'apiKeyExpiration' => $expDate
+        );
+    }
+    
+    // Static function to login user with userid and api key
+    public static function loginApi($userid, $apiKey) {
+        $query = "SELECT ROW_ID, USERNAME, PASSWORD, ROLE, API_KEY, API_KEY_EXPIRATION, WORK_START_TIME, WORK_END_TIME ";
+        $query.= "FROM USERS WHERE ROW_ID = :userid";
+        $query_data = array(
+            'userid' => $userid
+        );
+        
+        try {
+            $conn = new PDO("mysql:host=".HOST.";dbname=".DATABASE, DBUSER, DBPASSWORD);
+            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch(PDOException $e) {
+            return array(
+                'error' => ['msg' => "Connection failed: " . $e->getMessage()]
+            );
+        }
+        
+        try {
+            $stmt = $conn->prepare($query);
+            if ($stmt) {
+                $result = $stmt->execute($query_data);
+            }
+        } catch(PDOException $e) {
+            return array(
+                'error' => ['msg' => "PDO Error: " . $e->getMessage()]
+            );
+        }
+        
+        if ($result) {
+            $stmt->setFetchMode(PDO::FETCH_ASSOC);
+            $user = $stmt->fetch();
+        } else {
+            $error = $stmt->errorInfo();
+            return array(
+                'error' => ['msg' => "Query failed with message: " . $error[2]]
+            );
+        }
+        
+        if (empty($user)) {
+            return array(
+                'error' => ['msg' => "User not found"]
+            );
+        }
+        else if ($apiKey !== $user['API_KEY']) {
+            return array(
+                'error' => ['msg' => "Api key is incorrect"]
+            );
+        }
+        else if (new DateTime($user['API_KEY_EXPIRATION']) < new DateTime()) {
+            return array(
+                'error' => ['msg' => "Api key is expired, please login again"]
+            );
+        }
+        
+        return array(
+            'id' => $user['ROW_ID'],
+            'username' => $user['USERNAME'],
+            'role' => $user['ROLE'],
+            'workHoursStart' => $user['WORK_START_TIME'],
+            'workHoursEnd' => $user['WORK_END_TIME'],
+            'apiKey' => $user['API_KEY'],
+            'apiKeyExpiration' => $user['API_KEY_EXPIRATION']
         );
     }
     
