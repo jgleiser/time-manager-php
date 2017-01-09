@@ -6,9 +6,9 @@ include_once '../src/classes/TM/Admin.php';
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
-use \TM\User as User;
-use \TM\Manager as Manager;
-use \TM\Admin as Admin;
+use TM\User as User;
+use TM\Manager as Manager;
+use TM\Admin as Admin;
 
 // get template
 $app->get('/', function (Request $request, Response $response) {
@@ -131,10 +131,12 @@ $app->group('/api', function() {
                 return $response->withStatus(503);
             }
             
+            $currentUser = new User($userdata);
+            
             switch ($method) {
                 // get user data
                 case 'GET':
-                    $response->withJson($userdata);
+                    $response->withJson($currentUser->show());
                     return $response;
                     break;
                 // update user data
