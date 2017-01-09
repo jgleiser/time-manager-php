@@ -141,10 +141,43 @@ $app->group('/api', function() {
                     break;
                 // update user data
                 case 'PUT':
+                    // change password
+                    if (isset($data['oldPwd']) && isset($data['newPwd'])) {
+                         $upd = $currentUser->update($data['oldPwd'], $data['newPwd']);
+                    } else {
+                        // change start and end working time
+                        $newStart = isset($data['start_time']) ? $data['start_time'] : NULL;
+                        $newEnd = isset($data['end_time']) ? $data['end_time'] : NULL;
+                        if ($newStart && $currentUser->getWorkHoursStart() !== $newStart ||
+                            $newEnd && $currentUser->getWorkHoursEnd() !== $newEnd) {
+                            if ($newStart) $currentUser->setWorkHoursStart($newStart);
+                            if ($newEnd) $currentUser->setWorkHoursEnd($newEnd);
+                            $upd = $currentUser->update();
+                        } else {
+                            $response->withJson(array(
+                                'msg' => "You selected same working hours, update not needed."
+                            ));
+                            return $response;
+                        }
+                    }
+                    // $upd not set, unexpected error
+                    if (!isset($upd)) {
+                        $response->withJson(array(
+                            'error' => ['msg' => 'Unexpected error updating user']
+                        ));
+                        return $response->withStatus(503);
+                    }
+                    // errors with $upd or not updated
+                    if (isset($upd['error']) || true !== $upd) {
+                        $response->withJson($upd);
+                        $http_status = isset($upd['error']['code']) ? $upd['error']['code'] : 503;
+                        return $response->withStatus($http_status);
+                    }
+                    
                     $response->withJson(array(
-                        'method' => 'update user'
+                        'msg' => 'User updated'
                     ));
-                    return $response->withStatus(200);
+                    return $response;
                     break;
                 // delete user
                 case 'DELETE':
