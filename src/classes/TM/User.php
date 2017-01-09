@@ -459,7 +459,10 @@ class User {
                 return true;
             } else if (0 === $rowCount) {
                 return array(
-                    'error' => ['msg' => "User not updated or data didn't change"]
+                    'error' => [
+                        'msg' => "User not updated or data didn't change",
+                        'code' => 200
+                    ]
                 );
             } else {
                 return array(
