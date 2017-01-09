@@ -249,7 +249,9 @@ class User {
             'username' => $user['USERNAME'],
             'role' => $user['ROLE'],
             'workHoursStart' => $user['WORK_START_TIME'],
-            'workHoursEnd' => $user['WORK_END_TIME']
+            'workHoursEnd' => $user['WORK_END_TIME'],
+            'apiKey' => $user['API_KEY'],
+            'apiKeyExpiration' => $user['API_KEY_EXPIRATION']
         );
     }
     
@@ -393,6 +395,15 @@ class User {
         if (!empty($password))
             return password_verify($pwd, $password['PASSWORD']);
         return false;
+    }
+    
+    public function show() {
+        return array(
+            'id' => $this->id,
+            'username' => $this->username,
+            'workHoursStart' => $this->workHoursStart,
+            'workHoursEnd' => $this->workHoursEnd
+        );
     }
     
     // Updates user data in DB with current data
