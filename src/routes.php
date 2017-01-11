@@ -375,6 +375,57 @@ $app->group('/api', function() {
             return $response;
         })->setName('timenote');
         
+        // get user time notes summary between dates
+        $this->get('/users/{userid}/timenotes/summary', function (Request $request, Response $response, $args) {
+            $data = $request->getQueryParams();
+            
+            if (!isset($data['apikey'])) {
+                $response->withJson(array(
+                    'error' => [
+                        'msg' => 'apikey required'
+                    ]
+                ));
+                return $response->withStatus(401);
+            }
+            
+            if (!isset($data['start_dt']) && !isset($data['end_dt'])) {
+                $response->withJson(array(
+                    'error' => [
+                        'msg' => 'start_dt and end_dt required'
+                    ]
+                ));
+                return $response;
+            }
+            
+            $userdata = User::loginApi($args['userid'], $data['apikey']);
+            
+            // errors with userdata
+            if (isset($userdata['error'])) {
+                $response->withJson($userdata);
+                $http_status = isset($userdata['error']['code']) ? $userdata['error']['code'] : 503;
+                return $response->withStatus($http_status);
+            }
+            
+            $currentUser = new User($userdata);
+            
+            $startDate = isset($data['start_dt']) ? $data['start_dt'] : NULL;
+            $endDate = isset($data['end_dt']) ? $data['end_dt'] : NULL;
+            
+            $summary = TimeNote::getNotesSumary($currentUser, $startDate, $endDate);
+            
+            // errors with summary
+            if (isset($summary['error'])) {
+                $response->withJson($summary);
+                $http_status = isset($summary['error']['code']) ? $summary['error']['code'] : 503;
+                return $response->withStatus($http_status);
+            }
+            
+            if (empty($summary)) $response->withJson(array());
+            else $response->withJson($summary);
+            
+            return $response;
+        })->setName('summary');
+        
     });
     
 });
