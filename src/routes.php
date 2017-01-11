@@ -313,6 +313,39 @@ $app->group('/api', function() {
             return $response;
         })->setName('timenotes');
         
+        // All timenotes from a given date YYYY-MM-DD
+        $this->get('/users/{userid}/timenotes/{date:[12][90]\d\d-[01]\d-[0123]\d}', function (Request $request, Response $response, $args) {
+            $data = $request->getQueryParams();
+            
+            if (!isset($data['apikey'])) {
+                $response->withJson(array(
+                    'error' => [
+                        'msg' => 'apikey required'
+                    ]
+                ));
+                return $response->withStatus(401);
+            }
+            
+            $userdata = User::loginApi($args['userid'], $data['apikey']);
+            
+            // errors with userdata
+            if (isset($userdata['error'])) {
+                $response->withJson($userdata);
+                $http_status = isset($userdata['error']['code']) ? $userdata['error']['code'] : 503;
+                return $response->withStatus($http_status);
+            }
+            
+            $currentUser = new User($userdata);
+            
+            // TODO: implement get notes from date in TimeNote
+            
+            $response->withJson(array(
+                'msg' => 'Get notes from date not implemented yet',
+                'date' => $args['date']
+            ));
+            return $response;
+        })->setName('timenotes-date');
+        
         /*  Timenotes by id
         *   GET: show user timenote
         *   PUT: update a given timenote
