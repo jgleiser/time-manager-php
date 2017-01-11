@@ -3,7 +3,7 @@ namespace TM;
 
 use \PDO;
 use \DateTime;
-use \DateTimeZone;
+//use \DateTimeZone;
 use \DateInterval;
 
 class User {
