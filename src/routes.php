@@ -143,8 +143,15 @@ $app->group('/api', function() {
                 case 'PUT':
                     // change password
                     if (isset($data['oldPwd']) && isset($data['newPwd'])) {
-                         $upd = $currentUser->update($data['oldPwd'], $data['newPwd']);
-                    } else {
+                        if (strlen($data['newPwd']) > 3) {
+                            $upd = $currentUser->update($data['oldPwd'], $data['newPwd']);
+                        } else {
+                            $response->withJson(array(
+                                'error' => ['msg' => "Your new password has to be at least 4 characters long."]
+                            ));
+                            return $response;
+                        }
+                    } else if (isset($data['start_time']) || isset($data['end_time'])) {
                         // change start and end working time
                         $newStart = isset($data['start_time']) ? $data['start_time'] : NULL;
                         $newEnd = isset($data['end_time']) ? $data['end_time'] : NULL;
@@ -155,10 +162,15 @@ $app->group('/api', function() {
                             $upd = $currentUser->update();
                         } else {
                             $response->withJson(array(
-                                'msg' => "You selected same working hours, update not needed."
+                                'msg' => "You selected same working hours that you had, update not needed."
                             ));
                             return $response;
                         }
+                    } else {
+                        $response->withJson(array(
+                            'msg' => "You need to provide either newPwd and oldPwd to change your password or start_time and-or end_time to change your working hours"
+                        ));
+                        return $response;
                     }
                     // $upd not set, unexpected error
                     if (!isset($upd)) {
@@ -173,18 +185,34 @@ $app->group('/api', function() {
                         $http_status = isset($upd['error']['code']) ? $upd['error']['code'] : 503;
                         return $response->withStatus($http_status);
                     }
-                    
-                    $response->withJson(array(
-                        'msg' => 'User updated'
-                    ));
+                    if (isset($data['oldPwd']) && isset($data['newPwd'])) {
+                        $response->withJson(array(
+                            'msg' => 'User password updated'
+                        ));
+                    } else {
+                        $response->withJson(array(
+                            'msg' => 'User work hours updated'
+                        ));
+                    }
                     return $response;
                     break;
                 // delete user
                 case 'DELETE':
-                    $response->withJson(array(
-                        'method' => 'delete user'
-                    ));
-                    return $response->withStatus(200);
+                    if (!isset($data['password'])) {
+                        $response->withJson(array(
+                            'error' => ['msg' => "user password required to delete account"]
+                        ));
+                        return $response->withStatus(401);
+                    }
+                    $deleted = $currentUser->delete($data['password']);
+                    if (isset($deleted['error'])) {
+                        $response->withJson($deleted);
+                        $http_status = isset($deleted['error']['code']) ? $deleted['error']['code'] : 503;
+                        return $response->withStatus($http_status);
+                        
+                    }
+                    $response->withJson($deleted);
+                    return $response->withStatus(204);
                     break;
                 default:
                     $response->withJson(array(
