@@ -2,6 +2,8 @@
 namespace TM;
 
 use \PDO;
+use \DateTime;
+use \DateInterval;
 
 class TimeNote {
     private $id;
