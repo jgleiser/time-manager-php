@@ -407,7 +407,7 @@ class User {
     }
     
     // Updates user data in DB with current data
-    public function update($newPwd = "", $oldPwd = "") {
+    public function update($oldPwd = "", $newPwd = "") {
         $pwd = $newPwd != "" ? password_hash($newPwd, PASSWORD_DEFAULT) : NULL;
         $checkPwd = $pwd && $oldPwd != "" ? $this->checkPassword($oldPwd) : NULL;
         
@@ -481,14 +481,20 @@ class User {
     public function delete($usrPwd) {
         if (!isset($usrPwd)) {
             return array(
-                'error' => ['msg' => "Password needed to delete user " . $this->username]
+                'error' => [
+                    'msg' => "Password needed to delete user " . $this->username,
+                    'code' => 401
+                ]
             );
         }
         
         $checkPwd = $this->checkPassword($usrPwd);
         if (!$checkPwd) {
             return array(
-                'error' => ['msg' => "Given password is incorrect, can't delete user " . $this->username]
+                'error' => [
+                    'msg' => "Given password is incorrect, can't delete user " . $this->username,
+                    'code' => 403
+                ]
             );
         }
         
