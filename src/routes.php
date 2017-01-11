@@ -3,16 +3,29 @@ include_once '../src/classes/TM/Api.php';
 include_once '../src/classes/TM/User.php';
 include_once '../src/classes/TM/Manager.php';
 include_once '../src/classes/TM/Admin.php';
+include_once '../src/classes/TM/TimeNote.php';
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
-use TM\User as User;
-use TM\Manager as Manager;
-use TM\Admin as Admin;
+use \TM\User as User;
+use \TM\Manager as Manager;
+use \TM\Admin as Admin;
+use \TM\TimeNote as TimeNote;
 
-// get template
+// app template
 $app->get('/', function (Request $request, Response $response) {
     $response = $this->view->render($response, "index.html");
+    return $response;
+});
+
+// app logout
+$app->get('/api/logout', function (Request $request, Response $response) {
+    unset($_SESSION['TM']['userid']);
+    unset($_SESSION['TM']['username']);
+    unset($_SESSION['TM']['role']);
+    unset($_SESSION['TM']['apikey']);
+    unset($_SESSION['TM']['apiKeyExpiration']);
+    $response->withJson(['msg' => 'User loged out']);
     return $response;
 });
 
@@ -39,10 +52,8 @@ $app->group('/api', function() {
             // if there is any error on userdata
             if (isset($userdata['error'])) {
                 $response->withJson($userdata);
-                if (isset($userdata['error']['code'])) {
-                    return $response->withStatus($userdata['error']['code']);
-                }
-                return $response->withStatus(503);
+                $http_status = isset($userdata['error']['code']) ? $userdata['error']['code'] : 503;
+                return $response->withStatus($http_status);
             }
             
             if (isset($_SESSION) && $userdata['id'] > 0) {
@@ -92,10 +103,8 @@ $app->group('/api', function() {
             // check for errors
             if (isset($create['error'])) {
                 $response->withJson($create);
-                if (isset($create['error']['code'])) {
-                    return $response->withStatus($create['error']['code']);
-                }
-                return $response->withStatus(503);
+                $http_status = isset($create['error']['code']) ? $create['error']['code'] : 503;
+                return $response->withStatus($http_status);
             }
             
             $response->withJson(array(
@@ -106,7 +115,11 @@ $app->group('/api', function() {
             return $response->withStatus(201);
         })->setName('user-create');
         
-        // user data given an id
+        /*  user data given an id
+        *   GET: show user data
+        *   PUT: update user data, password or work hours
+        *   DELETE: delete user
+        */
         $this->map(['GET', 'PUT', 'DELETE'], '/users/{id}', function (Request $request, Response $response, $args) {
             $method = $request->getMethod();
             $data = $method === 'GET' ? $request->getQueryParams() : $request->getParsedBody();
@@ -125,10 +138,8 @@ $app->group('/api', function() {
             // errors with userdata
             if (isset($userdata['error'])) {
                 $response->withJson($userdata);
-                if (isset($userdata['error']['code'])) {
-                    return $response->withStatus($userdata['error']['code']);
-                }
-                return $response->withStatus(503);
+                $http_status = isset($userdata['error']['code']) ? $userdata['error']['code'] : 503;
+                return $response->withStatus($http_status);
             }
             
             $currentUser = new User($userdata);
@@ -222,9 +233,83 @@ $app->group('/api', function() {
                     ));
                     return $response->withStatus(405);
             }
-            
-            
         })->setName('user');
+        
+        /*  Timenotes
+        *   GET: show all timenotes from user 
+        *   POST: create new timenote for user
+        *   DELETE: delete all timenotes from user
+        */
+        $this->map(['GET', 'POST', 'DELETE'], '/users/{userid}/timenotes', function (Request $request, Response $response, $args) {
+            $method = $request->getMethod();
+            $data = $method === 'GET' ? $request->getQueryParams() : $request->getParsedBody();
+            
+            if (!isset($data['apikey'])) {
+                $response->withJson(array(
+                    'error' => [
+                        'msg' => 'apikey required'
+                    ]
+                ));
+                return $response->withStatus(401);
+            }
+            
+            $userdata = User::loginApi($args['userid'], $data['apikey']);
+            
+            // errors with userdata
+            if (isset($userdata['error'])) {
+                $response->withJson($userdata);
+                $http_status = isset($userdata['error']['code']) ? $userdata['error']['code'] : 503;
+                return $response->withStatus($http_status);
+            }
+            
+            $currentUser = new User($userdata);
+            
+            switch ($method) {
+                // show all user timenotes
+                case 'GET':
+                    $response->withJson(array(
+                        'method' => 'GET'
+                    ));
+                    return $response;
+                    break;
+                case 'POST':
+                    $start_dt = isset($data['start_dt']) ? $data['start_dt'] : NULL;
+                    $start_time = isset($data['start_time']) ? $data['start_time'] : NULL;
+                    $work_hours = isset($data['work_hours']) ? $data['work_hours'] : NULL;
+                    $time_note = isset($data['time_note']) ? $data['time_note'] : NULL;
+                    $note = new TimeNote($currentUser);
+                    $note->setStartDate($start_dt . " " . $start_time)
+                         ->setWorkHours($work_hours)
+                         ->setNote($time_note);
+                    $create = $note->create();
+                    // errors in create
+                    if (isset($create['error'])) {
+                        $response->withJson($create);
+                        $http_status = isset($create['error']['code']) ? $create['error']['code'] : 503;
+                        return $response->withStatus($http_status);
+                    }
+                    $response->withJson(array(
+                        'msg' => 'Timenote created',
+                        'noteid' => $note->getId()
+                    ));
+                    return $response->withStatus(201);
+                    break;
+                case 'DELETE':
+                    $response->withJson(array(
+                        'method' => 'DELETE'
+                    ));
+                    return $response;
+                    break;
+                default:
+                    $response->withJson(array(
+                        'error' => [
+                            'msg' => 'Wrong method, GET, POST or DELETE available'
+                        ]
+                    ));
+                    return $response->withStatus(405);
+            }
+            return $response;
+        })->setName('timenotes');
         
     });
     
