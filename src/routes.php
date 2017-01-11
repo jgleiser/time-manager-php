@@ -19,7 +19,7 @@ $app->get('/', function (Request $request, Response $response) {
 });
 
 // app logout
-$app->get('/api/logout', function (Request $request, Response $response) {
+$app->get('/logout', function (Request $request, Response $response) {
     unset($_SESSION['TM']['userid']);
     unset($_SESSION['TM']['username']);
     unset($_SESSION['TM']['role']);
