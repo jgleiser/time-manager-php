@@ -37,7 +37,7 @@ $app->group('/api', function() {
         
         // login
         $this->post('/login', function (Request $request, Response $response) {
-            $post_data = $request->getParsedBody() ? $request->getParsedBody() : $request->getQueryParams();
+            $post_data = $request->getParsedBody();
             
             // username and password not provided
             if (!isset($post_data['username']) || !isset($post_data['password'])) {
@@ -71,7 +71,7 @@ $app->group('/api', function() {
         
         // Create user, default to USER profile
         $this->post('/users', function (Request $request, Response $response) {
-            $post_data = $request->getParsedBody() ? $request->getParsedBody() : $request->getQueryParams();
+            $post_data = $request->getParsedBody();
             
             // username or password not provided
             if (!isset($post_data['username']) || !isset($post_data['password'])) {
@@ -268,7 +268,8 @@ $app->group('/api', function() {
                 // show all user timenotes
                 case 'GET':
                     $response->withJson(array(
-                        'method' => 'GET'
+                        'method' => 'GET',
+                        'msg' => 'Not implemented yet'
                     ));
                     return $response;
                     break;
@@ -296,7 +297,8 @@ $app->group('/api', function() {
                     break;
                 case 'DELETE':
                     $response->withJson(array(
-                        'method' => 'DELETE'
+                        'method' => 'DELETE',
+                        'msg' => 'Not implemented yet'
                     ));
                     return $response;
                     break;
