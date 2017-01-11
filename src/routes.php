@@ -313,6 +313,68 @@ $app->group('/api', function() {
             return $response;
         })->setName('timenotes');
         
+        /*  Timenotes by id
+        *   GET: show user timenote
+        *   PUT: update a given timenote
+        *   DELETE: delete a timenote
+        */
+        $this->map(['GET', 'PUT', 'DELETE'], '/users/{userid}/timenotes/{noteid}', function (Request $request, Response $response, $args) {
+            $method = $request->getMethod();
+            $data = $method === 'GET' ? $request->getQueryParams() : $request->getParsedBody();
+            
+            if (!isset($data['apikey'])) {
+                $response->withJson(array(
+                    'error' => [
+                        'msg' => 'apikey required'
+                    ]
+                ));
+                return $response->withStatus(401);
+            }
+            
+            $userdata = User::loginApi($args['userid'], $data['apikey']);
+            
+            // errors with userdata
+            if (isset($userdata['error'])) {
+                $response->withJson($userdata);
+                $http_status = isset($userdata['error']['code']) ? $userdata['error']['code'] : 503;
+                return $response->withStatus($http_status);
+            }
+            
+            $currentUser = new User($userdata);
+            
+            switch ($method) {
+                case 'GET':
+                    $response->withJson(array(
+                        'method' => 'GET',
+                        'msg' => 'Not implemented yet'
+                    ));
+                    return $response;
+                    break;
+                case 'PUT':
+                    $response->withJson(array(
+                        'method' => 'PUT',
+                        'msg' => 'Not implemented yet'
+                    ));
+                    return $response;
+                    break;
+                case 'DELETE':
+                    $response->withJson(array(
+                        'method' => 'DELETE',
+                        'msg' => 'Not implemented yet'
+                    ));
+                    return $response;
+                    break;
+                default:
+                    $response->withJson(array(
+                        'error' => [
+                            'msg' => 'Wrong method, GET, PUT or DELETE available'
+                        ]
+                    ));
+                    return $response->withStatus(405);
+            }
+            return $response;
+        })->setName('timenote');
+        
     });
     
 });
