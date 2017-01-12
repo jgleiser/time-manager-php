@@ -79,16 +79,22 @@ class TimeNote {
     }
     
     // get all time notes from a user
-    public static function getTimeNotes(User $owner) {
+    public static function getTimeNotes(User $owner, $date = NULL) {
         $query = "SELECT DATE_FORMAT(START_DT, '%Y-%m-%d') AS START_DT, ";
         $query.= "DATE_FORMAT(START_DT, '%H:%i') AS START_TIME, ";
         $query.= "TIMESTAMPDIFF(MINUTE,START_DT,END_DT) AS MINUTES, ";
         $query.= "NOTE, ROW_ID ";
         $query.= "FROM TIME_LOG WHERE USER_ID = :userid ";
+        if ($date) {
+            $query.= "AND DATE_FORMAT(START_DT, '%Y-%m-%d') = :date ";
+        }
         $query.= "ORDER BY START_DT";
         $query_data = array(
             "userid" => $owner->getId()
         );
+        if ($date) {
+            $query_data['date'] = $date;
+        }
         
         try {
             $conn = new PDO("mysql:host=".HOST.";dbname=".DATABASE, DBUSER, DBPASSWORD);
