@@ -18,17 +18,6 @@ $app->get('/', function (Request $request, Response $response) {
     return $response;
 });
 
-// app logout
-$app->get('/logout', function (Request $request, Response $response) {
-    unset($_SESSION['TM']['userid']);
-    unset($_SESSION['TM']['username']);
-    unset($_SESSION['TM']['role']);
-    unset($_SESSION['TM']['apikey']);
-    unset($_SESSION['TM']['apiKeyExpiration']);
-    $response->withJson(['msg' => 'User loged out']);
-    return $response;
-});
-
 // Api routes
 $app->group('/api', function() {
     
@@ -56,6 +45,7 @@ $app->group('/api', function() {
                 return $response->withStatus($http_status);
             }
             
+            // set php app session
             if (isset($_SESSION) && $userdata['id'] > 0) {
                 $_SESSION['TM']['userid'] = $userdata['id'];
                 $_SESSION['TM']['username'] = $userdata['username'];
@@ -68,6 +58,51 @@ $app->group('/api', function() {
             
             return $response;
         })->setName('login');
+        
+        // logout
+        $this->get('/logout/{userid}', function (Request $request, Response $response, $args) {
+            $data = $request->getQueryParams();
+            
+            if (!isset($data['apikey'])) {
+                $response->withJson(array(
+                    'error' => [
+                        'msg' => 'apikey required'
+                    ]
+                ));
+                return $response->withStatus(401);
+            }
+            
+            $userdata = User::loginApi($args['userid'], $data['apikey']);
+            
+            // errors with userdata
+            if (isset($userdata['error'])) {
+                $response->withJson($userdata);
+                $http_status = isset($userdata['error']['code']) ? $userdata['error']['code'] : 503;
+                return $response->withStatus($http_status);
+            }
+            
+            $currentUser = new User($userdata);
+            
+            // expire apikey
+            $logout = $currentUser->logout();
+            
+            // check for errors
+            if (isset($logout['error'])) {
+                $response->withJson($logout);
+                $http_status = isset($logout['error']['code']) ? $logout['error']['code'] : 503;
+                return $response->withStatus($http_status);
+            }
+            
+            // unset php app session
+            unset($_SESSION['TM']['userid']);
+            unset($_SESSION['TM']['username']);
+            unset($_SESSION['TM']['role']);
+            unset($_SESSION['TM']['apikey']);
+            unset($_SESSION['TM']['apiKeyExpiration']);
+            
+            $response->withJson($logout);
+            return $response;
+        })->setName('logout');
         
         // Create user, default to USER profile
         $this->post('/users', function (Request $request, Response $response) {

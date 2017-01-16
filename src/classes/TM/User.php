@@ -549,5 +549,42 @@ class User {
             );
         }
     }
+    
+    // logout user expiring api key with current timestamp
+    public function logout() {
+        $api_key_expiration = new DateTime();
+        $expDate = $api_key_expiration->format('Y-m-d H:i:s');
+        $query = "UPDATE";
+        query = "UPDATE USERS SET ";
+        $query.= "API_KEY_EXPIRATION = STR_TO_DATE('".$expDate."', '%Y-%m-%d %H:%i:%s') ";
+        $query.= "WHERE ROW_ID = :userid";
+        $query_data = array(
+            'userid' => $this->id;
+        );
+        
+        try {
+            $stmt = $conn->prepare($query);
+            if ($stmt) {
+                $result = $stmt->execute($query_data);
+            }
+        } catch(PDOException $e) {
+            return array(
+                'error' => ['msg' => "PDO Error: " . $e->getMessage()]
+            );
+        }
+        
+        if ($result) {
+            $row_count = $stmt->rowCount();
+        } else {
+            $error = $stmt->errorInfo();
+            return array(
+                'error' => ['msg' => "Query failed with message: " . $error[2]]
+            );
+        }
+        
+        return array(
+            'msg' => 'User loged out'
+        );
+    }
 }
 
