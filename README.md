@@ -1,5 +1,7 @@
 # Time Management App
 
+** UNDER DEVELOPMENT **
+
 Sample project by [Jose Gleiser](http://www.josegleiser.com)
 - Database abstraction through [PDO](http://php.net/manual/es/book.pdo.php), used with MySQL in this project.
 - RESTfull Api developed with PHP [slimframework](https://www.slimframework.com/)
