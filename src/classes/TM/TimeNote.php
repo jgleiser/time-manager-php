@@ -179,7 +179,8 @@ class TimeNote {
     public static function getWorkScheduleFromDate(User $owner, $date) {
         $query = "SELECT DATE_FORMAT(START_DT, '%Y-%m-%d %H:%i') AS START_DT, ";
         $query.= "DATE_FORMAT(END_DT, '%Y-%m-%d %H:%i') AS END_DT, ";
-        $query.= "NOTE FROM TIME_LOG WHERE USER_ID = :userid ";
+        $query.= "TIMESTAMPDIFF(MINUTE,START_DT,END_DT) AS MINUTES, ";
+        $query.= "NOTE, ROW_ID FROM TIME_LOG WHERE USER_ID = :userid ";
         $query.= "AND (DATE_FORMAT(START_DT, '%Y-%m-%d') = :date ";
         $query.= "OR DATE_FORMAT(END_DT, '%Y-%m-%d') = :date) ";
         $query.= "ORDER BY START_DT";
@@ -222,10 +223,18 @@ class TimeNote {
     
     // creates a new note
     public function create() {
-        // check that startDate, workHours and note are set
-        if (!isset($this->startDate) || !isset($this->workHours) || !isset($this->note)) {
+        // check that startDate, workHours and note are set and different from blank
+        if (!isset($this->startDate) ||
+            !isset($this->workHours) ||
+            !isset($this->note) ||
+            $this->startDate === "" ||
+            $this->workHours === "" ||
+            $this->note === "") {
             return array(
-                'error' => ['msg' => "Need to set startDate, workHours and note to create a new time note"]
+                'error' => [
+                    'msg' => "Need to set startDate, workHours and note to create a new time note",
+                    'code' => 406
+                ]
             );
         }
         
@@ -325,11 +334,68 @@ class TimeNote {
                 return true;
             } else if (0 === $rowCount) {
                 return array(
-                    'error' => ['msg' => "Time note not updated or data didn't change"]
+                    'error' => [
+                        'msg' => "Time note not updated or data didn't change",
+                        'code' => 200
+                    ]
                 );
             } else {
                 return array(
                     'error' => ['msg' => "Unexpected error, more than 1 time note updated"]
+                );
+            }
+        } else {
+            $error = $stmt->errorInfo();
+            return array(
+                'error' => ['msg' => "Query failed with message: " . $error[2]]
+            );
+        }
+    }
+    
+    // delete a timenote
+    public function delete($noteid) {
+        $query = "DELETE FROM TIME_LOG WHERE ROW_ID = :row_id";
+        $query_data = array(
+            "row_id" => $this->id
+        );
+        
+        try {
+            $conn = new PDO("mysql:host=".HOST.";dbname=".DATABASE, DBUSER, DBPASSWORD);
+            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch(PDOException $e) {
+            return array(
+                'error' => ['msg' => "Connection failed: " . $e->getMessage()]
+            );
+        }
+        
+        try {
+            $stmt = $conn->prepare($query);
+            if ($stmt) {
+                $result = $stmt->execute($query_data);
+            }
+        } catch(PDOException $e) {
+            return array(
+                'error' => ['msg' => "PDO Error: " . $e->getMessage()]
+            );
+        }
+        
+        if ($result) {
+            $rowCount = $stmt->rowCount();
+            if (1 === $rowCount) {
+                $this->id = null;
+                $this->userid = null;
+                $this->startDate = null;
+                $this->endDate = null;
+                $this->workHours = null;
+                $this->note = null;
+                return true;
+            } else if (0 === $rowCount) {
+                return array(
+                    'error' => ['msg' => "Note id " . $this->id . " was not deleted"]
+                );
+            } else {
+                return array(
+                    'error' => ['msg' => "Unexpected error, more than 1 note deleted"]
                 );
             }
         } else {
