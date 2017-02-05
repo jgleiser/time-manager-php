@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <title>Time Manager App</title>
+    <meta charset="UTF-8">
+    <meta name="description" content="Time Manager App with php, slim, pdo and jquery">
+    <meta name="keywords" content="PHP,SLIM,PDO,JQUERY">
+    <meta name="author" content="Jose Gleiser">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css">
+    <link rel="stylesheet" href="css/tm.css">
+    <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="https://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+    <script src="js/tm.js"></script>
+    <script src="js/pagebeforeshow.js"></script>
+  </head>
+  <body>
+  <!-- Index -->
+    <div data-role="page" id="index">
+      <div data-role="header">
+        <h1>Time Manager App</h1>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <p>Welcome to my time manager app, to continue please login or register</p>
+        <p>
+          <a href="#login" class="ui-btn">Login</a>
+          <a href="#register_user" class="ui-btn">Register a new user</a>
+        </p>
+      </div>
+      
+      <div data-role="footer" data-position="fixed" class="appfooter">
+        <p>Sample Project by <a href="http://www.josegleiser.com">Jose Gleiser</a></p>
+      </div>
+    </div>
+  
+  <!-- Register user form -->
+    <div data-role="page" data-dialog="true" id="register_user">
+    
+      <div data-role="header">
+        <h3>Register new user</h3>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <form method="post" action="/api/v1/users" id="form_register_user">
+          <label for="username">Username:</label>
+          <input type="text" name="username" id="uname" placeholder="Choose a username...">
+          
+          <label for="password">Password:</label>
+          <input type="password" name="password" id="pwd" placeholder="Write your password...">
+
+          <input type="submit" form="form_register_user" id="btn_register_user" value="Register">
+        </form>
+      </div>
+      
+      <div data-role="popup" id="popupRegisterOK">
+        <div data-role="content">
+          <p>User registered!</p>
+          <a href="#index" class="ui-btn">Great!</a>
+        </div>
+      </div>
+      
+      <div data-role="popup" id="popupRegisterNOK">
+        <div data-role="content">
+          <p>There was an error registering...</p>
+          <a href="#" data-rel="back" class="ui-btn">Try again!</a>
+        </div>
+      </div>
+      
+      <div data-role="footer" data-position="fixed">
+        <a href="#" class="ui-btn ui-btn-inline ui-icon-carat-l ui-btn-icon-left" data-rel="back">Go Back</a>
+      </div>
+    </div>
+    
+  <!-- Login -->
+    <div data-role="page" data-dialog="true" id="login">
+      <div data-role="header">
+        <h3>Login</h3>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <form method="post" action="/api/v1/login" id="form_login">
+          <label for="username">Username:</label>
+          <input type="text" name="username" id="uname" placeholder="Write your username...">
+          <label for="password">Password:</label>
+          <input type="password" name="password" id="pwd" placeholder="Write your password...">
+          <input type="submit" form="form_login" id="btn-login" value="Login">
+        </form>
+      </div>
+      
+      <div data-role="popup" id="popupLoginNOK">
+        <div data-role="content">
+          <p>There was an error with your login...</p>
+          <a href="#" data-rel="back" class="ui-btn">Try again!</a>
+        </div>
+      </div>
+      
+      <div data-role="footer" data-position="fixed">
+        <a href="#" class="ui-btn ui-btn-inline ui-icon-carat-l ui-btn-icon-left" data-rel="back">Go Back</a>
+      </div>
+    </div>
+    
+  <!-- Main App -->
+    <div data-role="page" id="app">
+      <div data-role="header" data-position="fixed">
+        <a href="#logout" id="btn-logout">Logout</a>
+        <h2>Time Manager App</h2>
+        <a href="#filter-dates" id="btn-filter-dates">Work Summary</a>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <div id="tm-day-data">
+          <div class="ui-grid-b" id="day-links">
+            <div class="ui-block-a"><a href="#prevday">Prev day</a></div>
+            <div class="ui-block-b" style="text-align:center"><a href="#today">Today</a></div>
+            <div class="ui-block-c" style="text-align:right"><a href="#nextday">Next day</a></div>
+          </div>
+          <p>
+            Date: <span id="app-date"></span>
+            <a href="#changeHours" class="ui-btn ui-btn-inline ui-mini">Change Preferred Working Hours</a>
+          </p>
+          <ul data-role="listview" id="time-list">
+            <li data-time="00:00">
+              <a href="#add_note" class="time-00">
+                <h4>00:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="01:00">
+              <a href="#add_note" class="time-01">
+                <h4>01:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="02:00">
+              <a href="#add_note" class="time-02">
+                <h4>02:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="03:00">
+              <a href="#add_note" class="time-03">
+                <h4>03:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="04:00">
+              <a href="#add_note" class="time-04">
+                <h4>04:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="05:00">
+              <a href="#add_note" class="time-05">
+                <h4>05:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="06:00">
+              <a href="#add_note" class="time-06">
+                <h4>06:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="07:00">
+              <a href="#add_note" class="time-07">
+                <h4>07:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="08:00">
+              <a href="#add_note" class="time-08">
+                <h4>08:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="09:00">
+              <a href="#add_note" class="time-09">
+                <h4>09:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="10:00">
+              <a href="#add_note" class="time-10">
+                <h4>10:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="11:00">
+              <a href="#add_note" class="time-11">
+                <h4>11:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="12:00">
+              <a href="#add_note" class="time-12">
+                <h4>12:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="13:00">
+              <a href="#add_note" class="time-13">
+                <h4>13:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="14:00">
+              <a href="#add_note" class="time-14">
+                <h4>14:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="15:00">
+              <a href="#add_note" class="time-15">
+                <h4>15:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="16:00">
+              <a href="#add_note" class="time-16">
+                <h4>16:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="17:00">
+              <a href="#add_note" class="time-17">
+                <h4>17:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="18:00">
+              <a href="#add_note" class="time-18">
+                <h4>18:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="19:00">
+              <a href="#add_note" class="time-19">
+                <h4>19:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="20:00">
+              <a href="#add_note" class="time-20">
+                <h4>20:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="21:00">
+              <a href="#add_note" class="time-21">
+                <h4>21:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="22:00">
+              <a href="#add_note" class="time-22">
+                <h4>22:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            <li data-time="23:00">
+              <a href="#add_note" class="time-23">
+                <h4>23:00</h4>
+                <p>Hours: <span>-</span><br>Note: <span>-</span></p>
+              </a>
+            </li>
+            
+          </ul>
+        </div>
+      </div>
+      
+      <div data-role="footer" data-position="fixed" class="appfooter">
+        <p>
+          Sample Project by <a href="http://www.josegleiser.com">Jose Gleiser</a>
+          <span></span>
+        </p>
+        
+      </div>
+    </div>
+  
+  <!-- Add Time Note -->
+    <div data-role="page" data-dialog="true" id="add_note">
+      <div data-role="header">
+        <h3>Add new time note</h3>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <form method="post" action="/api/v1/users/?/timenotes" id="form_add_note">
+          <label for="start_dt">Start Date:</label>
+          <input type="date" name="start_dt" readonly>
+          
+          <label for="start_time">Start Time:</label>
+          <input type="time" name="start_time" value="00:00" readonly>
+          
+          <label for="work_hours">Work hours:</label>
+          <input type="text" name="work_hours" placeholder="Number of hours...">
+          
+          <label for="time_note">Note:</label>
+          <input type="text" name="time_note" placeholder="Describe your work...">
+          
+          <input type="hidden" name="apikey" class="apikey" value="">
+          
+          <input type="submit" form="form_add_note" id="btn_add_note" value="Add note">
+        </form>
+      </div>
+      
+      <div data-role="popup" id="popupAddNoteOK">
+        <div data-role="content">
+          <p>Note added!</p>
+          <a href="#app" class="ui-btn">Back to main app</a>
+        </div>
+      </div>
+      
+      <div data-role="popup" id="popupAddNoteNOK">
+        <div data-role="content">
+          <p>There was an error creating your note...</p>
+          <a href="#" data-rel="back" class="ui-btn">Try again!</a>
+        </div>
+      </div>
+      
+      <div data-role="footer" data-position="fixed">
+        <a href="#" class="ui-btn ui-btn-inline ui-icon-carat-l ui-btn-icon-left" data-rel="back">Go Back</a>
+      </div>
+    </div>
+    
+  <!-- Edit Time Note -->
+    <div data-role="page" data-dialog="true" id="edit_note">
+      <div data-role="header">
+        <h3>Edit time note</h3>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <form method="put" action="/api/v1/users/?/timenotes/?" id="form_edit_note">
+          <label for="start_dt">Start Date:</label>
+          <input type="date" name="start_dt" readonly>
+          
+          <label for="start_time">Start Time:</label>
+          <input type="time" name="start_time" value="00:00" readonly>
+          
+          <label for="work_hours">Work hours:</label>
+          <input type="text" name="work_hours" placeholder="Number of hours...">
+          
+          <label for="time_note">Note:</label>
+          <input type="text" name="time_note" placeholder="Describe your work...">
+          
+          <input type="hidden" name="apikey" class="apikey" value="">
+          
+          <input type="submit" form="form_edit_note" id="btn_edit_note" value="Edit note">
+        </form>
+      </div>
+      
+      <div data-role="popup" id="popupEditNoteOK">
+        <div data-role="content">
+          <p>Note updated!</p>
+          <a href="#app" class="ui-btn">Back to main app</a>
+        </div>
+      </div>
+      
+      <div data-role="popup" id="popupEditNoteNOK">
+        <div data-role="content">
+          <p>There was an error updating your note...</p>
+          <a href="#" data-rel="back" class="ui-btn">Try again!</a>
+        </div>
+      </div>
+      
+      <div data-role="popup" id="popupDeleteNoteOK">
+        <div data-role="content">
+          <p>Your note was deleted</p>
+          <a href="#app" class="ui-btn">Back to main app</a>
+        </div>
+      </div>
+      
+      <div data-role="popup" id="popupDeleteNoteNOK">
+        <div data-role="content">
+          <p>There was an error deleting your note...</p>
+          <a href="#" data-rel="back" class="ui-btn">Try again!</a>
+        </div>
+      </div>
+      
+      <div data-role="footer" data-position="fixed">
+        <a href="#" class="ui-btn ui-btn-inline ui-icon-carat-l ui-btn-icon-left" data-rel="back">Go Back</a>
+        <a href="/api/v1/users/?/timenotes/?" id="delete_note" class="ui-btn ui-btn-inline ui-icon-delete ui-btn-icon-left">Delete note</a>
+      </div>
+    </div>
+    
+  <!-- Change preferred workin hours -->
+    <div data-role="page" data-dialog="true" id="changeHours">
+      <div data-role="header">
+        <h3>Change preferred working hours</h3>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <form method="put" action="/api/v1/users/?/preferredWorkHours" id="form_change_hours">
+          <label for="start_time">Start Time:</label>
+          <input type="time" name="start_time" value="09:00">
+          <label for="end_time">End Time:</label>
+          <input type="time" name="end_time" value="18:00">
+          <input type="submit" form="form_change_hours" id="btn_change_hours" value="Change hours">
+          <input type="hidden" name="userid" class="user_id" value="">
+          <input type="hidden" name="apikey" class="apikey" value="">
+        </form>
+      </div>
+      
+      <div data-role="popup" id="popupChangeHoursOK">
+        <div data-role="content">
+          <p>Preferred work hours changed!</p>
+          <a href="#app" class="ui-btn">Back to main app</a>
+        </div>
+      </div>
+      
+      <div data-role="popup" id="popupChangeHoursNOK">
+        <div data-role="content">
+          <p>There was an error changing your preferred work hours</p>
+          <a href="#" data-rel="back" class="ui-btn">Try again!</a>
+        </div>
+      </div>
+      
+      <div data-role="footer" data-position="fixed">
+        <a href="#" class="ui-btn ui-btn-inline ui-icon-carat-l ui-btn-icon-left" data-rel="back">Go Back</a>
+      </div>
+    </div>
+    
+  <!-- Filter between dates -->
+    <div data-role="page" data-dialog="true" id="filter-dates">
+      <div data-role="header">
+        <h3>Filter dates for work summary</h3>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <form method="get" action="/api/v1/users/?/timenotes/summary" id="form_filter_dates">
+          <label for="start_dt">Start Date:</label>
+          <input type="date" name="start_dt">
+          <label for="end_dt">End Date:</label>
+          <input type="date" name="end_dt">
+          <input type="hidden" name="apikey" class="apikey" value="">
+          <input type="submit" form="form_filter_dates" id="btn_filter_hours" value="Search">
+        </form>
+      </div>
+      
+      <div data-role="footer" data-position="fixed">
+        <a href="#" class="ui-btn ui-btn-inline ui-icon-carat-l ui-btn-icon-left" data-rel="back">Go Back</a>
+      </div>
+    </div>
+    
+  <!-- Filter summary -->
+    <div data-role="page" id="summary">
+      <div data-role="header" data-position="fixed">
+        <h2>Time Manager App</h2>
+        <a href="#app">Back to app</a>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <ul id="summary-content">
+        </ul>
+      </div>
+      
+      <div data-role="footer" data-position="fixed" class="appfooter">
+        <p>Sample Project by <a href="http://www.josegleiser.com">Jose Gleiser</a></p>
+      </div>
+    </div>
+    
+  <!-- Manager page -->
+    <div data-role="page" id="manager_page">
+      <div data-role="header" data-position="fixed">
+        <h2>User Manager page</h2>
+        <a href="#app">Back to app</a>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <table data-role="table" class="ui-responsive user-list">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Options</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+      
+      <div data-role="footer" data-position="fixed" class="appfooter">
+        <p>Sample Project by <a href="http://www.josegleiser.com">Jose Gleiser</a></p>
+      </div>
+    </div>
+    
+  <!-- Admin page -->
+    <div data-role="page" id="admin_page">
+      <div data-role="header" data-position="fixed">
+        <h2>Admin page</h2>
+        <a href="#app">Back to app</a>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <table data-role="table" class="ui-responsive user-list">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Options</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+      
+      <div data-role="footer" data-position="fixed" class="appfooter">
+        <p>Sample Project by <a href="http://www.josegleiser.com">Jose Gleiser</a></p>
+      </div>
+    </div>
+    
+  <!-- Admin/manager user edit page -->
+    <div data-role="page" data-dialog="true" id="admin_edit">
+
+      <div data-role="header">
+        <h3>Edit user</h3>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <form method="put" action="/api/v1/users/?" id="form_update_user">
+          <label for="username">Username:</label>
+          <input type="text" name="username" id="unameupd" readonly>
+          
+          <label for="password">Password:</label>
+          <input type="password" name="password" id="pwdupd" placeholder="Write new user password">
+          
+          <fieldset data-role="controlgroup">
+          <legend>Choose your role (only in dev! in prod default is User):</legend>
+            <label for="userupd">User</label>
+            <input type="radio" name="role" id="userupd" value="USER">
+            <label for="managerupd">Manager</label>
+            <input type="radio" name="role" id="managerupd" value="MANAGER">
+            <label for="adminupd">Admin</label>
+            <input type="radio" name="role" id="adminupd" value="ADMIN">
+          </fieldset>
+          
+          <input type="hidden" name="apikey" class="apikey" value="">
+          
+          <input type="submit" form="form_update_user" id="btn_update_user" value="Update">
+        </form>
+      </div>
+      
+      <div data-role="popup" id="popupUpdUserOK">
+        <div data-role="content">
+          <p>User updated!</p>
+          <a href="#admin_page" class="ui-btn">Great!</a>
+        </div>
+      </div>
+      
+      <div data-role="popup" id="popupUpdUserNOK">
+        <div data-role="content">
+          <p>There was an error updating...</p>
+          <a href="#" data-rel="back" class="ui-btn">Try again!</a>
+        </div>
+      </div>
+      
+      <div data-role="footer" data-position="fixed">
+        <a href="#" class="ui-btn ui-btn-inline ui-icon-carat-l ui-btn-icon-left" data-rel="back">Go Back</a>
+      </div>
+
+    </div>
+    
+  <!-- Admin time notes page -->
+    <div data-role="page" id="admin_tm_page">
+      <div data-role="header" data-position="fixed">
+        <a href="#admin_page" class="ui-btn ui-btn-inline ui-icon-carat-l ui-btn-icon-left">Go Back</a>
+        <h2>Admin page</h2>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <p><span></span>'s notes</p>
+        <table data-role="table" class="ui-responsive time-note-list">
+          <thead>
+            <tr>
+              <th>Start date</th>
+              <th>Start time</th>
+              <th>Work hours</th>
+              <th>Note</th>
+              <th>Options</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+      
+      <div data-role="footer" data-position="fixed" class="appfooter">
+        <p>Sample Project by <a href="http://www.josegleiser.com">Jose Gleiser</a></p>
+      </div>
+    </div>
+    
+  <!-- Admin Edit Time Note -->
+    <div data-role="page" data-dialog="true" id="admin_edit_tm">
+      <div data-role="header">
+        <h3>Edit time note</h3>
+      </div>
+      
+      <div data-role="content" class="ui-content">
+        <form method="put" action="/api/v1/users/?/timenotes/?" id="form_adm_edit_note">
+          <label for="start_dt">Start Date:</label>
+          <input type="date" name="start_dt">
+          
+          <label for="start_time">Start Time:</label>
+          <input type="time" name="start_time" value="00:00">
+          
+          <label for="work_hours">Work hours:</label>
+          <input type="text" name="work_hours" placeholder="Number of hours...">
+          
+          <label for="time_note">Note:</label>
+          <input type="text" name="time_note" placeholder="Describe your work...">
+          
+          <input type="submit" form="form_adm_edit_note" id="btn_adm_edit_note" value="Edit note">
+        </form>
+      </div>
+      
+      <div data-role="popup" id="popupAdmEditNoteOK">
+        <div data-role="content">
+          <p>Note updated!</p>
+          <a href="#admin_tm_page" class="ui-btn">Great!</a>
+        </div>
+      </div>
+      
+      <div data-role="popup" id="popupAdmEditNoteNOK">
+        <div data-role="content">
+          <p>There was an error updating your note...</p>
+          <a href="#" data-rel="back" class="ui-btn">Try again!</a>
+        </div>
+      </div>
+      
+      <div data-role="footer" data-position="fixed">
+        <a href="#" class="ui-btn ui-btn-inline ui-icon-carat-l ui-btn-icon-left" data-rel="back">Go Back</a>
+      </div>
+    </div>
+    
+    <script src="js/onevents.js"></script>
+  </body>
+</html>
