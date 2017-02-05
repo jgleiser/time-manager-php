@@ -3,7 +3,6 @@ namespace TM;
 
 use \PDO;
 use \DateTime;
-//use \DateTimeZone;
 use \DateInterval;
 
 class User {
@@ -554,13 +553,21 @@ class User {
     public function logout() {
         $api_key_expiration = new DateTime();
         $expDate = $api_key_expiration->format('Y-m-d H:i:s');
-        $query = "UPDATE";
-        query = "UPDATE USERS SET ";
+        $query = "UPDATE USERS SET ";
         $query.= "API_KEY_EXPIRATION = STR_TO_DATE('".$expDate."', '%Y-%m-%d %H:%i:%s') ";
         $query.= "WHERE ROW_ID = :userid";
         $query_data = array(
-            'userid' => $this->id;
+            'userid' => $this->id
         );
+        
+        try {
+            $conn = new PDO("mysql:host=".HOST.";dbname=".DATABASE, DBUSER, DBPASSWORD);
+            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch(PDOException $e) {
+            return array(
+                'error' => ['msg' => "Connection failed: " . $e->getMessage()]
+            );
+        }
         
         try {
             $stmt = $conn->prepare($query);
