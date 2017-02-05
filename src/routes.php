@@ -1,9 +1,4 @@
 <?php
-include_once '../src/classes/TM/Api.php';
-include_once '../src/classes/TM/User.php';
-include_once '../src/classes/TM/Manager.php';
-include_once '../src/classes/TM/Admin.php';
-include_once '../src/classes/TM/TimeNote.php';
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -104,51 +99,74 @@ $app->group('/api', function() {
             return $response;
         })->setName('logout');
         
-        // Create user, default to USER profile
-        $this->post('/users', function (Request $request, Response $response) {
-            $post_data = $request->getParsedBody();
+        /*
+            POST: Create user
+            GET: Get all users, available only to admin or manager
+        */
+        $this->map(['GET', 'POST'],'/users', function (Request $request, Response $response) {
+            $method = $request->getMethod();
             
-            // username or password not provided
-            if (!isset($post_data['username']) || !isset($post_data['password'])) {
-                $response->withJson(array(
-                    'error' => ['msg' => 'username and password required']
-                ));
-                return $response;
+            switch ($method) {
+                case 'POST':
+                    $post_data = $request->getParsedBody();
+            
+                    // username or password not provided
+                    if (!isset($post_data['username']) || !isset($post_data['password'])) {
+                        $response->withJson(array(
+                            'error' => ['msg' => 'username and password required']
+                        ));
+                        return $response;
+                    }
+                    
+                    // username min length
+                    if (strlen($post_data['username']) < 2) {
+                        $response->withJson(array(
+                            'error' => ['msg' => 'Desired username must have at least 2 characters']
+                        ));
+                        return $response;
+                    }
+                    
+                    // password min length
+                    if (strlen($post_data['password']) < 4) {
+                        $response->withJson(array(
+                            'error' => ['msg' => 'Desired password must have at least 4 characters']
+                        ));
+                        return $response;
+                    }
+                    
+                    // create user
+                    $create = User::create($post_data['username'], $post_data['password']);
+                    
+                    // check for errors
+                    if (isset($create['error'])) {
+                        $response->withJson($create);
+                        $http_status = isset($create['error']['code']) ? $create['error']['code'] : 503;
+                        return $response->withStatus($http_status);
+                    }
+                    
+                    $response->withJson(array(
+                        'msg' => 'User created',
+                        'userid' => $create
+                    ));
+                    
+                    return $response->withStatus(201);
+                    break;
+                    
+                case 'GET':
+                    
+                    break;
+                
+                default:
+                    $response->withJson(array(
+                        'error' => [
+                            'msg' => 'Wrong method, GET or POST available'
+                        ]
+                    ));
+                    return $response->withStatus(405);
             }
             
-            // username min length
-            if (strlen($post_data['username']) < 2) {
-                $response->withJson(array(
-                    'error' => ['msg' => 'Desired username must have at least 2 characters']
-                ));
-                return $response;
-            }
             
-            // password min length
-            if (strlen($post_data['password']) < 4) {
-                $response->withJson(array(
-                    'error' => ['msg' => 'Desired password must have at least 4 characters']
-                ));
-                return $response;
-            }
-            
-            // create user
-            $create = User::create($post_data['username'], $post_data['password']);
-            
-            // check for errors
-            if (isset($create['error'])) {
-                $response->withJson($create);
-                $http_status = isset($create['error']['code']) ? $create['error']['code'] : 503;
-                return $response->withStatus($http_status);
-            }
-            
-            $response->withJson(array(
-                'msg' => 'User created',
-                'userid' => $create
-            ));
-            
-            return $response->withStatus(201);
-        })->setName('user-create');
+        })->setName('users');
         
         /*  user data given an id
         *   GET: show user data
@@ -434,6 +452,41 @@ $app->group('/api', function() {
             return $response;
         })->setName('timenotes-date');
         
+        // All timenotes that starts or end from a given date YYYY-MM-DD
+        $this->get('/users/{userid}/timenotes/workday/{date:[12][90]\d\d-[01]\d-[0123]\d}', function (Request $request, Response $response, $args) {
+            $data = $request->getQueryParams();
+            
+            if (!isset($data['apikey'])) {
+                $response->withJson(array(
+                    'error' => [
+                        'msg' => 'apikey required'
+                    ]
+                ));
+                return $response->withStatus(401);
+            }
+            
+            $userdata = User::loginApi($args['userid'], $data['apikey']);
+            
+            // errors with userdata
+            if (isset($userdata['error'])) {
+                $response->withJson($userdata);
+                $http_status = isset($userdata['error']['code']) ? $userdata['error']['code'] : 503;
+                return $response->withStatus($http_status);
+            }
+            
+            $currentUser = new User($userdata);
+            
+            $notes = TimeNote::getWorkScheduleFromDate($currentUser, $args['date']);
+            
+            $response->withJson($notes);
+            
+            if (isset($notes['error'])) {
+                return $response->withStatus(503);
+            }
+            
+            return $response;
+        })->setName('timenotes-date');
+        
         /*  Timenotes by id
         *   GET: show user timenote
         *   PUT: update a given timenote
@@ -462,28 +515,46 @@ $app->group('/api', function() {
             }
             
             $currentUser = new User($userdata);
+            $note = new TimeNote($currentUser);
+            $note->fetch($args['noteid']);
             
             switch ($method) {
                 case 'GET':
-                    $response->withJson(array(
-                        'method' => 'GET',
-                        'msg' => 'Not implemented yet'
-                    ));
+                    $timenote = array(
+                        'noteid' => $note->getId(),
+                        'userid' => $note->getUserId(),
+                        'start_dt' => $note->getStartDate(),
+                        'end_dt' => $note->getEndDate(),
+                        'work_hours' => $note->getWorkHours(),
+                        'note' => $note->getNote()
+                    );
+                    $response->withJson($timenote);
                     return $response;
                     break;
                 case 'PUT':
-                    $response->withJson(array(
-                        'method' => 'PUT',
-                        'msg' => 'Not implemented yet'
-                    ));
+                    $note->setWorkHours((int)$data['work_hours']);
+                    $note->setStartDate($data['start_dt']." ".$data['start_time']);
+                    $note->setNote($data['time_note']);
+                    $upd = $note->update();
+                    if (isset($upd['error'])) {
+                        $response->withJson($upd);
+                        $http_status = isset($upd['error']['code']) ? $upd['error']['code'] : 503;
+                        return $response->withStatus($http_status);
+                    } else {
+                        return $response->withStatus(204);
+                    }
+                    
                     return $response;
                     break;
                 case 'DELETE':
-                    $response->withJson(array(
-                        'method' => 'DELETE',
-                        'msg' => 'Not implemented yet'
-                    ));
-                    return $response;
+                    $delete = $note->delete();
+                    if ($delete === true) {
+                        return $response->withStatus(204);
+                    } else {
+                        $response->withJson($delete);
+                        $http_status = isset($userdata['error']['code']) ? $userdata['error']['code'] : 503;
+                        return $response->withStatus($http_status);
+                    }
                     break;
                 default:
                     $response->withJson(array(
